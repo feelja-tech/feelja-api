@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+      }
+      td,
+      th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+      }
+      tr:nth-child(even) {
+        background-color: #dddddd;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Users without a match</h1>
+    <table style="width: 100%">
+      <tbody id="table"></tbody>
+    </table>
+
+    <script>
+      function handleForm(userId, formId, csrf) {
+        fetch("/admin/create_match", {
+          method: "POST",
+          mode: "same-origin",
+          cache: "no-cache",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+            "x-csrf-token": csrf,
+          },
+          body: JSON.stringify({
+            ...Object.fromEntries(
+              new FormData(document.getElementById(formId))
+            ),
+            user_id: userId,
+          }),
+        }).then((res) => alert(res.statusText));
+      }
+
+      window.onload = () => {
+        fetch("/admin/users", {
+          method: "GET",
+          mode: "same-origin",
+          cache: "no-cache",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((res) => {
+            res.json().then((v) => {
+              const val = v.data;
+              const csrf = v.csrf;
+
+              // Header
+              document.getElementById("table").insertAdjacentHTML(
+                "beforeend",
+                `<tr>
+                  <th>Match</th>
+                  ${Object.keys(val[0])
+                    .reverse()
+                    .map((key) => {
+                      if (val[0][key]) return `<th>${key}</th>`;
+                    })
+                    .filter((el) => {
+                      return el != null;
+                    })
+                    .join("")}
+                </tr>`
+              );
+              val.forEach((element, idx) => {
+                const userId = element["user_id"];
+                document.getElementById("table").insertAdjacentHTML(
+                  "beforeend",
+                  `<tr>
+                    <td>
+                      <form id="form${idx}" action="javascript:handleForm('${userId}', 'form${idx}', '${csrf}')" style="display: grid;justify-content: left;" method="post">
+                        <input type="number" name="other_user_id" placeholder="User ID" style="grid-column: 1/2;max-width: 70px;">
+                        <input type="url" name="location" placeholder="Location" style="grid-column: 2/3;max-width: 100px;">
+                        <input type="submit" value="Match!" style="grid-column: 3/4;">
+                      </form>
+                    </td>
+                    ${Object.keys(element)
+                      .reverse()
+                      .map((key) => {
+                        if (key.endsWith("_file"))
+                          return `<td><a target="_blank" href="https://s3.console.aws.amazon.com/s3/object/nudge-api?region=us-east-2&prefix=${element[key]}">${key}</a></td>`;
+                        else if (element[key])
+                          return `<td>${element[key]}</td>`;
+                      })
+                      .filter((el) => {
+                        return el != null;
+                      })
+                      .join("")}
+                  </tr>`
+                );
+              });
+            });
+          })
+          .catch(console.error);
+      };
+    </script>
+  </body>
+</html>

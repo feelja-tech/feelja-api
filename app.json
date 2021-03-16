@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "dokku": {
+      "postdeploy": "MIX_ENV=prod mix ecto.migrate"
+    }
+  }
+}
